@@ -106,19 +106,19 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Payment Method</label>
-                        <div class="form-check">
+                            <div class="form-check">
                             <input class="form-check-input" type="radio" name="payment_type" id="cash" value="cash" checked>
                             <label class="form-check-label" for="cash">
                                 Cash
-                            </label>
-                        </div>
-                        <div class="form-check">
+                                </label>
+                            </div>
+                            <div class="form-check">
                             <input class="form-check-input" type="radio" name="payment_type" id="mpesa" value="mpesa">
                             <label class="form-check-label" for="mpesa">
                                 M-Pesa
-                            </label>
+                                </label>
+                            </div>
                         </div>
-                    </div>
                     <div class="mb-3" id="mpesaPhoneGroup" style="display: none;">
                         <label for="mpesa_phone" class="form-label">M-Pesa Phone Number</label>
                         <input type="tel" class="form-control" id="mpesa_phone" placeholder="Enter M-Pesa phone number">
@@ -636,7 +636,7 @@
         if (cart.length === 0) {
             alert('Cart is empty');
             return;
-        }
+            }
 
         const paymentType = document.querySelector('input[name="payment_type"]:checked')?.value;
         if (!paymentType) {
@@ -649,7 +649,7 @@
             if (!mpesaPhone) {
                 alert('Please enter M-Pesa phone number');
                 return;
-            }
+                        }
         }
 
         const paymentButton = document.getElementById('processPaymentBtn');
@@ -685,8 +685,8 @@
                 } else {
                     alert(data.error || 'Error processing payment');
                 }
-                return;
-            }
+                        return;
+                    }
 
             // Show success message
             alert('Payment processed successfully!');
@@ -698,7 +698,7 @@
 
             // Close payment modal
             const paymentModal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
-            if (paymentModal) {
+                    if (paymentModal) {
                 paymentModal.hide();
             }
 
@@ -712,15 +712,15 @@
         } finally {
             paymentButton.textContent = 'Process Payment';
             paymentButton.disabled = false;
-        }
+                    }
     }
 
     function showError(message, isHtml = false) {
         const errorDiv = document.getElementById('error-message');
         if (!errorDiv) {
             console.error('Error message div not found');
-            return;
-        }
+                        return;
+                    }
         
         if (isHtml) {
             errorDiv.innerHTML = message;
@@ -731,7 +731,7 @@
         setTimeout(() => {
             errorDiv.style.display = 'none';
         }, 5000);
-    }
+            }
 
     // Get CSRF token from cookie
     function getCookie(name) {
@@ -743,50 +743,50 @@
                 if (cookie.substring(0, name.length + 1) === (name + '=')) {
                     cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
                     break;
-                }
+                    }
             }
-        }
+            }
         return cookieValue;
-    }
+        }
 
     // Add to cart function
     function addToCart(productId, productName, productPrice, productStock) {
-        const existingItem = cart.find(item => item.id === productId);
-        
-        if (existingItem) {
+            const existingItem = cart.find(item => item.id === productId);
+            
+            if (existingItem) {
             if (existingItem.quantity >= productStock) {
                 alert(`Only ${productStock} items available in stock!`);
                 return;
             }
-            existingItem.quantity++;
-        } else {
+                    existingItem.quantity++;
+                } else {
             if (productStock <= 0) {
                 alert('This item is out of stock!');
-                return;
+                    return;
+                }
+                cart.push({
+                    id: productId,
+                    name: productName,
+                    price: productPrice,
+                    quantity: 1,
+                    stock: productStock
+                });
             }
-            cart.push({
-                id: productId,
-                name: productName,
-                price: productPrice,
-                quantity: 1,
-                stock: productStock
-            });
-        }
-        
-        updateCart();
-        saveCart();
+            
+            updateCart();
+            saveCart();
     }
 
     // Update cart display
     function updateCart() {
-        const cartItems = document.getElementById('cartItems');
+            const cartItems = document.getElementById('cartItems');
         const cartCount = document.getElementById('cartCount');
-        const cartTotal = document.getElementById('cartTotal');
-        const mobileCartTotal = document.getElementById('mobileCartTotal');
-        const mobileCartCount = document.getElementById('mobileCartCount');
-        const proceedToPaymentBtn = document.getElementById('proceedToPaymentBtn');
-        const mobileProceedToPaymentBtn = document.getElementById('mobileProceedToPaymentBtn');
-        
+            const cartTotal = document.getElementById('cartTotal');
+            const mobileCartTotal = document.getElementById('mobileCartTotal');
+            const mobileCartCount = document.getElementById('mobileCartCount');
+            const proceedToPaymentBtn = document.getElementById('proceedToPaymentBtn');
+            const mobileProceedToPaymentBtn = document.getElementById('mobileProceedToPaymentBtn');
+            
         if (!cartItems) return;
         
         cartItems.innerHTML = '';
@@ -880,7 +880,7 @@
 
     // Save cart to localStorage
     function saveCart() {
-        localStorage.setItem('cart', JSON.stringify(cart));
+            localStorage.setItem('cart', JSON.stringify(cart));
     }
 
     // Load cart when page loads
@@ -909,7 +909,7 @@
                     updatePaymentSummary(total);
                 });
 
-                // Handle payment button click
+    // Handle payment button click
                 const processPaymentBtn = document.getElementById('processPaymentBtn');
                 if (processPaymentBtn) {
                     processPaymentBtn.onclick = function(e) {
@@ -959,16 +959,16 @@
                 mpesaPhone.addEventListener('input', function(e) {
                     this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);
                 });
-            }
+    }
 
             // Proceed to payment button
             const proceedToPaymentBtn = document.getElementById('proceedToPaymentBtn');
             if (proceedToPaymentBtn) {
                 proceedToPaymentBtn.onclick = function() {
-                    if (cart.length === 0) {
-                        alert('Cart is empty!');
-                        return;
-                    }
+            if (cart.length === 0) {
+                alert('Cart is empty!');
+                return;
+            }
                     if (paymentModal) {
                         paymentModal.show();
                     }
@@ -983,7 +983,7 @@
                     if (cartModalElement) {
                         const cartModal = new bootstrap.Modal(cartModalElement);
                         cartModal.show();
-                    }
+                }
                 };
             }
 
@@ -999,7 +999,7 @@
                         paymentModal.show();
                     }
                 };
-            }
+                }
         } catch (error) {
             console.error('Error initializing POS:', error);
         }
