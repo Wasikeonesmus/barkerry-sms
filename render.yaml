@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: upendo-bakery
+    env: python
+    buildCommand: |
+      pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+      python manage.py migrate
+    startCommand: gunicorn upendo_bakery.wsgi:application
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: false
+      - key: ALLOWED_HOSTS
+        value: .onrender.com
+      - key: DATABASE_URL
+        fromDatabase:
+          name: upendo-bakery-db
+          property: connectionString
+
+databases:
+  - name: upendo-bakery-db
+    databaseName: upendo_bakery
+    user: upendo_bakery_user 

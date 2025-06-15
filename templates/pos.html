@@ -1,0 +1,1042 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}POS System - Upendo Mini Bakery{% endblock %}
+
+{% block content %}
+<!-- Error Message -->
+<div id="error-message" class="alert alert-danger" style="display: none; position: fixed; top: 20px; right: 20px; z-index: 1000;"></div>
+
+<div class="pos-container">
+    <!-- Search and Filter Section -->
+    <div class="search-filter">
+        <div class="container-fluid px-2">
+            <div class="row g-2">
+                <div class="col-12 col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" id="searchInput" class="form-control" placeholder="Search products...">
+                    </div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <div class="category-pills" id="categoryFilters">
+                        <button class="category-pill active" data-category="all">All Items</button>
+                        {% for category in categories %}
+                        <button class="category-pill" data-category="{{ category.id }}">{{ category.name }}</button>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container-fluid px-2">
+        <div class="row g-2">
+            <!-- Products Grid -->
+            <div class="col-12 col-md-8">
+                <div class="product-grid" id="productGrid">
+                    {% for product in products %}
+                    <div class="product-card" data-category="{{ product.category.id }}">
+                        <div class="product-image-container">
+                            {% if product.image %}
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-image">
+                            {% else %}
+                            <div class="product-image-placeholder">
+                                <i class="fas fa-image"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="product-details">
+                            <h5 class="product-title">{{ product.name }}</h5>
+                            <div class="product-price">KES {{ product.price|floatformat:2 }}</div>
+                            <div class="product-stock {% if product.stock <= 5 %}text-danger{% endif %}">
+                                Stock: {{ product.stock }}
+                            </div>
+                        </div>
+                        <div class="product-actions">
+                            <button class="btn btn-primary w-100 add-to-cart" 
+                                    data-product-id="{{ product.id }}"
+                                    data-product-name="{{ product.name }}"
+                                    data-product-price="{{ product.price }}"
+                                    data-product-stock="{{ product.stock }}"
+                                    {% if product.stock <= 0 %}disabled{% endif %}>
+                                <i class="fas fa-cart-plus"></i> <span class="d-none d-sm-inline">Add to Cart</span>
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Cart Summary -->
+            <div class="col-12 col-md-4">
+                <div class="cart-sidebar">
+                    <div class="cart-header">
+                        <h5>Current Order</h5>
+                        <span class="badge bg-primary" id="cartCount">0 items</span>
+                    </div>
+                    <div class="cart-items" id="cartItems">
+                        <!-- Cart items will be added here -->
+                    </div>
+                    <div class="cart-footer">
+                        <div class="cart-total">
+                            <span>Total:</span>
+                            <span id="cartTotal" class="fw-bold">KES 0.00</span>
+                        </div>
+                        <button id="proceedToPaymentBtn" class="btn btn-primary w-100">
+                            <i class="fas fa-credit-card"></i> Proceed to Payment
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="paymentModalLabel">Payment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Payment Method</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="payment_type" id="cash" value="cash" checked>
+                            <label class="form-check-label" for="cash">
+                                Cash
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="payment_type" id="mpesa" value="mpesa">
+                            <label class="form-check-label" for="mpesa">
+                                M-Pesa
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3" id="mpesaPhoneGroup" style="display: none;">
+                        <label for="mpesa_phone" class="form-label">M-Pesa Phone Number</label>
+                        <input type="tel" class="form-control" id="mpesa_phone" placeholder="Enter M-Pesa phone number">
+                    </div>
+                    <div class="payment-summary">
+                        <h6>Payment Summary</h6>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal:</span>
+                            <span id="paymentSubtotal">KES 0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>VAT (16%):</span>
+                            <span id="paymentVAT">KES 0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between fw-bold">
+                            <span>Total:</span>
+                            <span id="paymentTotal">KES 0.00</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="processPaymentBtn" onclick="handlePayment()">
+                        Process Payment
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mobile Cart Bar -->
+<div class="mobile-cart-bar">
+    <div class="mobile-cart-info">
+        <div class="mobile-cart-total" id="mobileCartTotal">KES 0.00</div>
+        <div class="mobile-cart-count" id="mobileCartCount">0 items</div>
+    </div>
+    <button class="btn btn-primary" id="mobileViewCartBtn">
+        <i class="fas fa-shopping-cart"></i> <span class="d-none d-sm-inline">View Cart</span>
+    </button>
+    <button class="btn btn-success ms-2" id="mobileProceedToPaymentBtn" disabled>
+        <i class="fas fa-credit-card"></i> <span class="d-none d-sm-inline">Pay</span>
+    </button>
+</div>
+
+<style>
+    /* Mobile-First Responsive Design */
+    .pos-container {
+        min-height: 100vh;
+        background-color: #f8f9fa;
+        padding-bottom: 70px; /* Space for mobile cart bar */
+    }
+
+    /* Mobile Cart Bar */
+    .mobile-cart-bar {
+        display: none;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        padding: 10px;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        z-index: 1000;
+    }
+
+    /* Search and Filter */
+    .search-filter {
+        background: white;
+        padding: 0.75rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+    }
+
+    .category-pills {
+        display: flex;
+        gap: 0.5rem;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; /* Firefox */
+        margin: 0 -0.5rem;
+        padding: 0 0.5rem;
+    }
+
+    .category-pills::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Edge */
+    }
+
+    .category-pill {
+        padding: 0.5rem 1rem;
+        border-radius: 2rem;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.2s;
+        user-select: none;
+        font-size: 0.9rem;
+    }
+
+    /* Product Card and Image Styles */
+    .product-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 0.75rem;
+        padding: 0.75rem;
+    }
+    
+    .product-card {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        overflow: hidden;
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+    
+    .product-image-container {
+        position: relative;
+        padding-top: 100%;
+        overflow: hidden;
+    }
+    
+    .product-image {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+
+    .product-image-placeholder {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8f9fa;
+        color: #dee2e6;
+        font-size: 2rem;
+    }
+
+    .product-details {
+        padding: 0.75rem;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    
+    .product-title {
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+        line-height: 1.2;
+        height: 2.4em;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        color: #212529;
+    }
+
+    .product-price {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #198754;
+        margin-bottom: 0.25rem;
+    }
+
+    .product-stock {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-bottom: 0.5rem;
+    }
+    
+    .product-stock.text-danger {
+        color: #dc3545;
+    }
+
+    .product-actions {
+        padding: 0.75rem;
+        border-top: 1px solid #dee2e6;
+        background: #f8f9fa;
+    }
+
+    .product-actions .btn {
+        width: 100%;
+        padding: 0.5rem;
+        font-size: 0.9rem;
+        white-space: nowrap;
+    }
+
+    /* Cart Item Styles */
+    .cart-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        border-bottom: 1px solid #dee2e6;
+        background: white;
+    }
+
+    .cart-item-details {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .cart-item-details h6 {
+        margin: 0;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .cart-item-price {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+
+    .cart-item-quantity {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 0 1rem;
+    }
+
+    .cart-item-quantity .quantity {
+        min-width: 2rem;
+        text-align: center;
+    }
+
+    .cart-item-total {
+        font-weight: bold;
+        margin: 0 1rem;
+        min-width: 6rem;
+        text-align: right;
+    }
+
+    .cart-item .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+    }
+
+    /* Cart Sidebar Styles */
+    .cart-sidebar {
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .cart-header {
+        padding: 1rem;
+        border-bottom: 1px solid #dee2e6;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .cart-items {
+        flex: 1;
+        overflow-y: auto;
+        max-height: calc(100vh - 300px);
+    }
+
+    .cart-footer {
+        padding: 1rem;
+        border-top: 1px solid #dee2e6;
+        background: #f8f9fa;
+    }
+
+    .cart-total {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+    }
+
+    /* Mobile Cart Bar Styles */
+    @media (max-width: 768px) {
+        .mobile-cart-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+        }
+
+        .mobile-cart-info {
+            flex: 1;
+        }
+
+        .mobile-cart-total {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .mobile-cart-count {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+    }
+
+    /* Payment Modal */
+    .payment-methods {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .payment-method {
+        padding: 1rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .payment-method:hover {
+        background-color: #f8f9fa;
+    }
+
+    .payment-method input[type="radio"]:checked + label {
+        color: #0d6efd;
+        font-weight: bold;
+    }
+
+    /* Mobile Optimizations */
+    @media (max-width: 768px) {
+        .cart-sidebar {
+            display: none;
+        }
+
+        .mobile-cart-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mobile-cart-info {
+            flex: 1;
+            margin-right: 1rem;
+        }
+
+        .mobile-cart-total {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .mobile-cart-count {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+
+        .product-grid {
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 0.5rem;
+            padding: 0.5rem;
+        }
+
+        .product-details {
+            padding: 0.5rem;
+        }
+
+        .product-title {
+            font-size: 0.85rem;
+            height: 2.2em;
+        }
+
+        .product-price {
+            font-size: 1rem;
+        }
+
+        .product-stock {
+            font-size: 0.75rem;
+        }
+
+        .product-actions {
+            padding: 0.5rem;
+        }
+
+        .product-actions .btn {
+            padding: 0.375rem;
+            font-size: 0.85rem;
+        }
+
+        .modal-dialog {
+            margin: 0.5rem;
+        }
+
+        .payment-method {
+            padding: 0.75rem;
+        }
+
+        .payment-method label {
+            font-size: 0.9rem;
+        }
+    }
+
+    /* Small Mobile Screens */
+    @media (max-width: 360px) {
+        .product-grid {
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 0.375rem;
+            padding: 0.375rem;
+        }
+
+        .product-title {
+            font-size: 0.8rem;
+            height: 2em;
+        }
+
+        .product-price {
+            font-size: 0.9rem;
+        }
+
+        .product-stock {
+            font-size: 0.7rem;
+        }
+
+        .category-pill {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.8rem;
+        }
+
+        .mobile-cart-bar {
+            padding: 0.5rem;
+        }
+
+        .mobile-cart-total {
+            font-size: 1rem;
+        }
+
+        .mobile-cart-count {
+            font-size: 0.8rem;
+        }
+
+        .btn {
+            padding: 0.375rem 0.5rem;
+            font-size: 0.8rem;
+        }
+    }
+
+    /* Hover Effects */
+    @media (hover: hover) {
+        .product-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .product-card:hover .product-image {
+            transform: scale(1.05);
+        }
+    }
+
+    /* Receipt Styles */
+    .receipt {
+        font-family: 'Courier New', monospace;
+        width: 80mm;
+        margin: 0 auto;
+        padding: 10px;
+    }
+
+    .receipt .header {
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    .receipt .divider {
+        border-top: 1px dashed #000;
+        margin: 5px 0;
+    }
+
+    .receipt .item {
+        display: flex;
+        justify-content: space-between;
+        margin: 5px 0;
+    }
+
+    .receipt .total {
+        font-weight: bold;
+    }
+
+    .receipt .footer {
+        text-align: center;
+        margin-top: 10px;
+        font-size: 0.8em;
+    }
+</style>
+
+<script>
+    // Initialize variables
+    let cart = [];
+    let paymentModal = null;
+    let isProcessingPayment = false;
+
+    // Calculate total amount
+    function calculateTotal() {
+        return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    }
+
+    // Handle payment processing
+    async function handlePayment() {
+        if (cart.length === 0) {
+            alert('Cart is empty');
+            return;
+        }
+
+        const paymentType = document.querySelector('input[name="payment_type"]:checked')?.value;
+        if (!paymentType) {
+            alert('Please select a payment method');
+            return;
+        }
+
+        if (paymentType === 'mpesa') {
+            const mpesaPhone = document.getElementById('mpesa_phone').value;
+            if (!mpesaPhone) {
+                alert('Please enter M-Pesa phone number');
+                return;
+            }
+        }
+
+        const paymentButton = document.getElementById('processPaymentBtn');
+        paymentButton.textContent = 'Processing...';
+        paymentButton.disabled = true;
+
+        try {
+            const response = await fetch('/pos/process-payment/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    items: cart.map(item => ({
+                        id: item.id,
+                        quantity: item.quantity,
+                        price: item.price
+                    })),
+                    payment_type: paymentType,
+                    mpesa_phone: document.getElementById('mpesa_phone').value,
+                    total_amount: calculateTotal()
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                if (data.error && data.error.includes('Insufficient stock')) {
+                    // Format the error message for better readability
+                    const formattedError = data.error.replace(/\n/g, '<br>');
+                    alert(`Stock Error:\n${formattedError}`);
+                } else {
+                    alert(data.error || 'Error processing payment');
+                }
+                return;
+            }
+
+            // Show success message
+            alert('Payment processed successfully!');
+
+            // Clear cart and update display
+            cart = [];
+            updateCart();
+            saveCart();
+
+            // Close payment modal
+            const paymentModal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
+            if (paymentModal) {
+                paymentModal.hide();
+            }
+
+            // Redirect to receipt
+            if (data.receipt_id) {
+                window.location.href = `/receipt/${data.receipt_id}/`;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error processing payment');
+        } finally {
+            paymentButton.textContent = 'Process Payment';
+            paymentButton.disabled = false;
+        }
+    }
+
+    function showError(message, isHtml = false) {
+        const errorDiv = document.getElementById('error-message');
+        if (!errorDiv) {
+            console.error('Error message div not found');
+            return;
+        }
+        
+        if (isHtml) {
+            errorDiv.innerHTML = message;
+        } else {
+            errorDiv.textContent = message;
+        }
+        errorDiv.style.display = 'block';
+        setTimeout(() => {
+            errorDiv.style.display = 'none';
+        }, 5000);
+    }
+
+    // Get CSRF token from cookie
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Add to cart function
+    function addToCart(productId, productName, productPrice, productStock) {
+        const existingItem = cart.find(item => item.id === productId);
+        
+        if (existingItem) {
+            if (existingItem.quantity >= productStock) {
+                alert(`Only ${productStock} items available in stock!`);
+                return;
+            }
+            existingItem.quantity++;
+        } else {
+            if (productStock <= 0) {
+                alert('This item is out of stock!');
+                return;
+            }
+            cart.push({
+                id: productId,
+                name: productName,
+                price: productPrice,
+                quantity: 1,
+                stock: productStock
+            });
+        }
+        
+        updateCart();
+        saveCart();
+    }
+
+    // Update cart display
+    function updateCart() {
+        const cartItems = document.getElementById('cartItems');
+        const cartCount = document.getElementById('cartCount');
+        const cartTotal = document.getElementById('cartTotal');
+        const mobileCartTotal = document.getElementById('mobileCartTotal');
+        const mobileCartCount = document.getElementById('mobileCartCount');
+        const proceedToPaymentBtn = document.getElementById('proceedToPaymentBtn');
+        const mobileProceedToPaymentBtn = document.getElementById('mobileProceedToPaymentBtn');
+        
+        if (!cartItems) return;
+        
+        cartItems.innerHTML = '';
+        let total = 0;
+        let count = 0;
+        
+        cart.forEach((item, index) => {
+            const itemTotal = item.price * item.quantity;
+            total += itemTotal;
+            count += item.quantity;
+            
+            cartItems.innerHTML += `
+                <div class="cart-item">
+                    <div class="cart-item-details">
+                        <h6 class="mb-0">${item.name}</h6>
+                        <small class="text-muted">KES ${item.price.toFixed(2)} × ${item.quantity}</small>
+                    </div>
+                    <div class="cart-item-actions">
+                        <div class="quantity-controls">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="updateQuantity(${index}, -1)" ${item.quantity <= 1 ? 'disabled' : ''}>
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <span class="quantity">${item.quantity}</span>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="updateQuantity(${index}, 1)" ${item.quantity >= item.stock ? 'disabled' : ''}>
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <button class="btn btn-sm btn-danger" onclick="removeFromCart(${index})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        cartCount.textContent = `${count} item${count !== 1 ? 's' : ''}`;
+        cartTotal.textContent = `KES ${total.toFixed(2)}`;
+        if (mobileCartTotal) mobileCartTotal.textContent = `KES ${total.toFixed(2)}`;
+        if (mobileCartCount) mobileCartCount.textContent = `${count} items`;
+        
+        const hasItems = cart.length > 0;
+        if (proceedToPaymentBtn) proceedToPaymentBtn.disabled = !hasItems;
+        if (mobileProceedToPaymentBtn) mobileProceedToPaymentBtn.disabled = !hasItems;
+
+        // Update payment summary
+        updatePaymentSummary(total);
+    }
+
+    // Update payment summary
+    function updatePaymentSummary(subtotal) {
+        const paymentSubtotal = document.getElementById('paymentSubtotal');
+        const paymentVAT = document.getElementById('paymentVAT');
+        const paymentTotal = document.getElementById('paymentTotal');
+        
+        if (paymentSubtotal && paymentVAT && paymentTotal) {
+            const vat = subtotal * 0.16;
+            const finalTotal = subtotal + vat;
+            
+            paymentSubtotal.textContent = `KES ${subtotal.toFixed(2)}`;
+            paymentVAT.textContent = `KES ${vat.toFixed(2)}`;
+            paymentTotal.textContent = `KES ${finalTotal.toFixed(2)}`;
+        }
+    }
+
+    // Update item quantity
+    function updateQuantity(index, change) {
+        const item = cart[index];
+        const newQuantity = item.quantity + change;
+        
+        if (newQuantity < 1) {
+            removeFromCart(index);
+            return;
+        }
+        
+        if (newQuantity > item.stock) {
+            alert(`Only ${item.stock} items available in stock!`);
+            return;
+        }
+        
+        item.quantity = newQuantity;
+        updateCart();
+        saveCart();
+    }
+
+    // Remove item from cart
+    function removeFromCart(index) {
+        cart.splice(index, 1);
+        updateCart();
+        saveCart();
+    }
+
+    // Save cart to localStorage
+    function saveCart() {
+        localStorage.setItem('cart', JSON.stringify(cart));
+    }
+
+    // Load cart when page loads
+    function loadCart() {
+        const savedCart = localStorage.getItem('cart');
+        if (savedCart) {
+            cart = JSON.parse(savedCart);
+            updateCart();
+        }
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        try {
+            // Load cart from localStorage
+            loadCart();
+
+            // Initialize payment modal
+            const paymentModalElement = document.getElementById('paymentModal');
+            if (paymentModalElement) {
+                paymentModal = new bootstrap.Modal(paymentModalElement);
+                
+                // Update payment summary when modal is shown
+                paymentModalElement.addEventListener('show.bs.modal', function() {
+                    const total = calculateTotal();
+                    updatePaymentSummary(total);
+                });
+
+                // Handle payment button click
+                const processPaymentBtn = document.getElementById('processPaymentBtn');
+                if (processPaymentBtn) {
+                    processPaymentBtn.onclick = function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Payment button clicked');
+                        handlePayment();
+                    };
+                }
+            }
+            
+            // Add to cart buttons
+            document.querySelectorAll('.add-to-cart').forEach(button => {
+                button.addEventListener('click', function() {
+                    const productId = this.dataset.productId;
+                    const productName = this.dataset.productName;
+                    const productPrice = parseFloat(this.dataset.productPrice);
+                    const productStock = parseInt(this.dataset.productStock);
+                    
+                    addToCart(productId, productName, productPrice, productStock);
+                });
+            });
+
+            // Payment method selection
+            const paymentMethods = document.querySelectorAll('input[name="payment_type"]');
+            const mpesaPhoneInput = document.getElementById('mpesaPhoneGroup');
+            
+            if (paymentMethods && mpesaPhoneInput) {
+                paymentMethods.forEach(method => {
+                    method.addEventListener('change', function() {
+                        const mpesaPhoneGroup = document.getElementById('mpesaPhoneGroup');
+                        mpesaPhoneGroup.style.display = this.value === 'mpesa' ? 'block' : 'none';
+                    });
+                });
+
+                // Check initial state
+                const selectedMethod = document.querySelector('input[name="payment_type"]:checked');
+                if (selectedMethod && selectedMethod.value === 'mpesa') {
+                    mpesaPhoneInput.style.display = 'block';
+                    document.getElementById('mpesa_phone').required = true;
+                }
+            }
+
+            // Handle mobile keyboard
+            const mpesaPhone = document.getElementById('mpesa_phone');
+            if (mpesaPhone) {
+                mpesaPhone.addEventListener('input', function(e) {
+                    this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);
+                });
+            }
+
+            // Proceed to payment button
+            const proceedToPaymentBtn = document.getElementById('proceedToPaymentBtn');
+            if (proceedToPaymentBtn) {
+                proceedToPaymentBtn.onclick = function() {
+                    if (cart.length === 0) {
+                        alert('Cart is empty!');
+                        return;
+                    }
+                    if (paymentModal) {
+                        paymentModal.show();
+                    }
+                };
+            }
+
+            // Mobile view cart button
+            const mobileViewCartBtn = document.getElementById('mobileViewCartBtn');
+            if (mobileViewCartBtn) {
+                mobileViewCartBtn.onclick = function() {
+                    const cartModalElement = document.getElementById('cartModal');
+                    if (cartModalElement) {
+                        const cartModal = new bootstrap.Modal(cartModalElement);
+                        cartModal.show();
+                    }
+                };
+            }
+
+            // Mobile proceed to payment button
+            const mobileProceedToPaymentBtn = document.getElementById('mobileProceedToPaymentBtn');
+            if (mobileProceedToPaymentBtn) {
+                mobileProceedToPaymentBtn.onclick = function() {
+                    if (cart.length === 0) {
+                        alert('Cart is empty!');
+                        return;
+                    }
+                    if (paymentModal) {
+                        paymentModal.show();
+                    }
+                };
+            }
+        } catch (error) {
+            console.error('Error initializing POS:', error);
+        }
+    });
+
+    // Add this function to close the payment modal
+    function closePaymentModal() {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
+        if (modal) {
+            modal.hide();
+        }
+    }
+
+    // Add this function to update cart display
+    function updateCartDisplay() {
+        const cartItems = document.getElementById('cartItems');
+        const cartTotal = document.getElementById('cartTotal');
+        
+        if (cartItems) {
+            cartItems.innerHTML = cart.map(item => `
+                <div class="cart-item">
+                    <span>${item.name}</span>
+                    <span>${item.quantity} x ${item.price}</span>
+                    <button class="btn btn-sm btn-danger" onclick="removeFromCart(${item.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+        
+        if (cartTotal) {
+            cartTotal.textContent = calculateTotal().toFixed(2);
+        }
+    }
+
+    function getCart() {
+        return cart;
+    }
+</script>
+{% endblock %}

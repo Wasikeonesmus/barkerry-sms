@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-10">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0"><i class="fas fa-cog me-2"></i>System Settings</h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        {% for setting_type, settings in settings_by_type.items %}
+                        <div class="card mb-4 border-0 bg-light">
+                            <div class="card-header bg-transparent">
+                                <h4 class="mb-0 text-primary">
+                                    <i class="fas fa-{% if setting_type == 'general' %}info-circle{% elif setting_type == 'appearance' %}paint-brush{% elif setting_type == 'system' %}cogs{% elif setting_type == 'notification' %}bell{% else %}credit-card{% endif %} me-2"></i>
+                                    {{ setting_type|title }} Settings
+                                </h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    {% for setting in settings %}
+                                    <div class="col-12 col-md-6 mb-3">
+                                        <div class="form-group">
+                                            <label for="setting_{{ setting.id }}" class="form-label fw-bold">
+                                                {{ setting.name|title }}
+                                            </label>
+                                            
+                                            {% if setting.name == 'low_stock_alert' or setting.name == 'email_notifications' or setting.name == 'enable_mpesa' or setting.name == 'enable_cash' or setting.name == 'enable_card' %}
+                                            <div class="form-check form-switch">
+                                                <input type="checkbox" 
+                                                       class="form-check-input" 
+                                                       id="setting_{{ setting.id }}" 
+                                                       name="setting_{{ setting.id }}" 
+                                                       {% if setting.value == 'true' %}checked{% endif %}>
+                                                <label class="form-check-label" for="setting_{{ setting.id }}">
+                                                    Enable {{ setting.name|title }}
+                                                </label>
+                                            </div>
+                                            {% elif setting.name == 'logo' %}
+                                            <div class="input-group">
+                                                <input type="file" 
+                                                       class="form-control" 
+                                                       id="setting_{{ setting.id }}" 
+                                                       name="setting_{{ setting.id }}"
+                                                       accept="image/*">
+                                                {% if setting.value %}
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-image"></i>
+                                                </span>
+                                                {% endif %}
+                                            </div>
+                                            {% elif 'color' in setting.name %}
+                                            <div class="input-group">
+                                                <input type="color" 
+                                                       class="form-control form-control-color" 
+                                                       id="setting_{{ setting.id }}" 
+                                                       name="setting_{{ setting.id }}"
+                                                       value="{{ setting.value }}"
+                                                       title="Choose your color">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-palette"></i>
+                                                </span>
+                                            </div>
+                                            {% else %}
+                                            <div class="input-group">
+                                                <input type="text" 
+                                                       class="form-control" 
+                                                       id="setting_{{ setting.id }}" 
+                                                       name="setting_{{ setting.id }}"
+                                                       value="{{ setting.value }}"
+                                                       placeholder="Enter {{ setting.name|title }}">
+                                                <span class="input-group-text">
+                                                    <i class="fas fa-edit"></i>
+                                                </span>
+                                            </div>
+                                            {% endif %}
+                                            
+                                            {% if setting.description %}
+                                            <div class="form-text text-muted mt-1">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                {{ setting.description }}
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-save me-2"></i>Save Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Apply color settings to UI
+    document.addEventListener('DOMContentLoaded', function() {
+        const colorInputs = document.querySelectorAll('input[type="color"]');
+        colorInputs.forEach(input => {
+            input.addEventListener('change', function() {
+                const color = this.value;
+                const settingName = this.id.replace('setting_', '');
+                
+                // Apply color to specific elements based on setting name
+                if (settingName.includes('primary')) {
+                    document.documentElement.style.setProperty('--primary-color', color);
+                } else if (settingName.includes('secondary')) {
+                    document.documentElement.style.setProperty('--secondary-color', color);
+                } else if (settingName.includes('accent')) {
+                    document.documentElement.style.setProperty('--accent-color', color);
+                }
+            });
+        });
+
+        // Form validation
+        const forms = document.querySelectorAll('.needs-validation');
+        Array.from(forms).forEach(form => {
+            form.addEventListener('submit', event => {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %} 
