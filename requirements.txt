@@ -1,8 +1,8 @@
+# Core Django and extensions
 Django==5.2.1
 django-phonenumber-field==7.3.0
 phonenumbers==8.13.30
 Pillow==10.2.0
-python-3.11.9
 python-decouple==3.12.3
 requests==2.31.0
 django-crispy-forms==2.1
