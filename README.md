@@ -1,3 +1,4 @@
+
 # Upendo Mini Bakery Management System (UM-BMS)
 
 A comprehensive bakery management system built with Django, featuring Mpesa integration for payments.
@@ -67,3 +68,5 @@ python manage.py runserver
 ## License
 
 This project is licensed under the MIT License. 
+=======
+# barkerry-sms
