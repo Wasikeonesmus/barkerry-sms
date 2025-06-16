@@ -3,6 +3,7 @@ services:
     name: upendo-bakery
     env: python
     buildCommand: |
+      pip install --upgrade pip setuptools wheel
       pip install -r requirements.txt
       python manage.py collectstatic --noinput
       python manage.py migrate
@@ -24,4 +25,4 @@ services:
 databases:
   - name: upendo-bakery-db
     databaseName: upendo_bakery
-    user: upendo_bakery_user 
+    user: upendo_bakery_user
