@@ -1,8 +1,8 @@
 Django==5.2.1
 django-phonenumber-field==7.3.0
 phonenumbers==8.13.30
-Pillow==9.5.0
-python-decouple==3.8
+Pillow==9.4.0
+python-decouple==3.12.3
 requests==2.31.0
 django-crispy-forms==2.1
 crispy-bootstrap5==2023.10
