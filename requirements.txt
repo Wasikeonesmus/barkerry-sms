@@ -1,8 +1,7 @@
-# Core Django dependencies
 Django==5.2.1
 django-phonenumber-field==7.3.0
 phonenumbers==8.13.30
-Pillow==9.4.0a
+Pillow==10.3.0
 python-decouple==3.12.3
 requests==2.31.0
 django-crispy-forms==2.1
@@ -10,9 +9,9 @@ crispy-bootstrap5==2023.10
 django-environ==0.11.2
 
 # Production packages
-psycopg2-binary==2.9.9          # PostgreSQL adapter
-gunicorn==21.2.0                # WSGI HTTP Server for UNIX
-whitenoise==6.6.0               # Serve static files in production
-django-storages==1.14.2         # For static/media file backends
-python-dotenv==1.0.0            # Load env vars from .env
-django-redis==5.4.0             # Redis cache backend for Django
+psycopg2-binary==2.9.9
+gunicorn==21.2.0
+whitenoise==6.6.0
+django-storages==1.14.2
+python-dotenv==1.0.0
+django-redis==5.4.0
